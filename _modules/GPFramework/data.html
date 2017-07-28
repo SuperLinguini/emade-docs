@@ -1,0 +1,1211 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.data &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.data</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Programmed by Jason Zutty</span>
+<span class="sd">Modified by VIP Team</span>
+<span class="sd">Implements a new data type for use with DEAP</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+
+<div class="viewcode-block" id="load_feature_data_from_file"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.load_feature_data_from_file">[docs]</a><span class="k">def</span> <span class="nf">load_feature_data_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads feature data written in a typical csv format:</span>
+<span class="sd">    First row is the header, remaining rows are data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename: name of data file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A GTMOEP Object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">my_file</span><span class="p">:</span>
+        <span class="n">first_line</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">label_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">class_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="n">feature_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]])</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">my_file</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">first_line</span><span class="p">:</span>
+                <span class="n">first_line</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">label_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">class_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])])</span>
+                <span class="n">feature_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+
+            <span class="n">point</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">class_data</span><span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span>
+                <span class="n">StreamData</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span>
+                <span class="n">FeatureData</span><span class="p">(</span>
+                    <span class="n">feature_data</span><span class="p">,</span>
+                    <span class="n">label_data</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">points</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_many_to_one_from_file"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.load_many_to_one_from_file">[docs]</a><span class="k">def</span> <span class="nf">load_many_to_one_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads stream data written in a many to one format:</span>
+<span class="sd">        time,data,time,data,time,data,...,truth_val</span>
+<span class="sd">    per sample</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename: name of data file</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A GTMOEPData Object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">my_file</span><span class="p">:</span>
+        <span class="c1"># Start by reading the first line which specifies how many rows</span>
+        <span class="c1"># per column, i.e. data will be written col,row,row,row,...col,...</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">my_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="c1"># Check first line for N=Number</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;N=(\d+)&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="c1"># Assign N to be what the file specifies</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default is one row per col, i.e. a vector</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="c1"># Reset the file pointer to the beginning of file</span>
+            <span class="n">my_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">my_file</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])])</span>
+            <span class="c1">#waveform = [float(elem) for elem in line[:-1]]</span>
+            <span class="n">times</span> <span class="o">=</span> <span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">:(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="n">counts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[(</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span><span class="o">-</span><span class="mi">1</span><span class="p">:(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
+
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+            <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+            <span class="c1">#print counts.shape, times.shape</span>
+            <span class="c1">#print times</span>
+            <span class="c1">#print counts</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">depth</span><span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span>
+                <span class="n">ManyToOne</span><span class="p">(</span>
+                    <span class="n">counts</span><span class="p">,</span> <span class="n">times</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span>
+                <span class="n">FeatureData</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">points</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="grouper"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.grouper">[docs]</a><span class="k">def</span> <span class="nf">grouper</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span><span class="o">*</span><span class="n">n</span>
+    <span class="k">return</span> <span class="n">itertools</span><span class="o">.</span><span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">fillvalue</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="load_many_to_many_from_file"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.load_many_to_many_from_file">[docs]</a><span class="k">def</span> <span class="nf">load_many_to_many_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method is designed to read in data that uses a &quot;stream&quot;</span>
+<span class="sd">    of data to predict a &quot;stream&quot; of data. A potential example of this paradigm</span>
+<span class="sd">    would be a filter design problem</span>
+<span class="sd">    The format of this data will be interlaced, such that you have:</span>
+<span class="sd">    Sample_Data</span>
+<span class="sd">    Truth_Data</span>
+<span class="sd">    Sample_Data</span>
+<span class="sd">    Truth_Data</span>
+<span class="sd">    etc...</span>
+
+<span class="sd">    Threfore we will always have an even number of lines</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">my_file</span><span class="p">:</span>
+        <span class="c1"># Start by reading the first line which specifies how many rows</span>
+        <span class="c1"># per column, i.e. data will be written col,row,row,row,...col,...</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">my_file</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="c1"># Check first line for N=Number</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;N=(\d+)&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="c1"># Assign N to be what the file specifies</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default is one row per col, i.e. a vector</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="c1"># Reset the file pointer to the beginning of file</span>
+            <span class="n">my_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">lines</span> <span class="ow">in</span> <span class="n">grouper</span><span class="p">(</span><span class="n">my_file</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">times_1</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">times_2</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">counts_1</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">counts_2</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">line_1</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="n">line_2</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="c1">#depth = [float(line[-1])]</span>
+            <span class="c1">#waveform = [float(elem) for elem in line[:-1]]</span>
+            <span class="n">times_1</span> <span class="o">=</span> <span class="n">line_1</span><span class="p">[::(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="n">times_2</span> <span class="o">=</span> <span class="n">line_2</span><span class="p">[::(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="n">counts_1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line_1</span><span class="p">[(</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">)::(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
+                <span class="n">counts_2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line_2</span><span class="p">[(</span><span class="n">row</span><span class="o">+</span><span class="mi">1</span><span class="p">)::(</span><span class="n">N</span><span class="o">+</span><span class="mi">1</span><span class="p">)])</span>
+
+            <span class="n">counts_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">counts_1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+            <span class="n">times_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">times_1</span><span class="p">)</span>
+
+            <span class="n">counts_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">counts_2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+            <span class="n">times_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">times_2</span><span class="p">)</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">counts_2</span><span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span>
+                <span class="n">ManyToMany</span><span class="p">(</span>
+                    <span class="n">counts_1</span><span class="p">,</span> <span class="n">times_1</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">point</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span>
+                <span class="n">FeatureData</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">points</span><span class="p">)</span></div>
+
+<span class="c1"># subclass based on truth (and data?)</span>
+
+<div class="viewcode-block" id="GTMOEPDataObject"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject">[docs]</a><span class="k">class</span> <span class="nc">GTMOEPDataObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Serves as the parent class for GTMOEP data objects.</span>
+
+<span class="sd">    Represented by three attributes:</span>
+<span class="sd">        _data: an array containing data.</span>
+<span class="sd">        _labels: an array labeling the data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="c1"># Let&#39;s call the methods of the class to set the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+        <span class="c1">## One dimensional data check</span>
+        <span class="c1">#if data.shape == labels.shape:</span>
+        <span class="c1">#    self._data = data</span>
+        <span class="c1">#    self._labels = labels</span>
+        <span class="c1">## Two dimensional data check</span>
+        <span class="c1">#elif len(data) == 0 and len(labels) == 0 or data.shape[1] == labels.shape[0]:</span>
+        <span class="c1">#    self._data = data</span>
+        <span class="c1">#    self._labels = labels</span>
+        <span class="c1">#else:</span>
+        <span class="c1">#    raise ValueError(</span>
+        <span class="c1">#            &#39;Data array and label array do not match in shape.&#39;</span>
+        <span class="c1">#            )</span>
+
+
+<div class="viewcode-block" id="GTMOEPDataObject.get_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the data stored in the object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataObject.set_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject.set_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the data object.</span>
+<span class="sd">        Optionally takes in a corresponding set of labels for the data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: data object</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if data is not all finite</span>
+<span class="sd">            ValueError: if data array and label array do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span>
+        <span class="c1"># For debugging purposes I am going to raise an exception if the data is not all finite,</span>
+        <span class="c1"># I may leave this in, as the sci-kit methods seem to require all data be finite</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Non-finite data produced: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
+
+        <span class="c1"># One dimensional data check</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="c1"># Two dimensional data check</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">labels</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Data array and label array do not match in shape.&#39;</span>
+                    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataObject.get_labels"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject.get_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the labels associated with the objects data.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataObject.set_labels"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject.set_labels">[docs]</a>    <span class="k">def</span> <span class="nf">set_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the labels associated with the data objects.</span>
+<span class="sd">        Optionally takes in a a corresponding set of data for the labels.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            labels: data object labels</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if label array and data array do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+        <span class="k">if</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">labels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Label array and data array do not match in shape.&#39;</span>
+                    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataObject.type_check"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataObject.type_check">[docs]</a>    <span class="k">def</span> <span class="nf">type_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks to see if the types of self and other match.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if types of self and other do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The two objects are of different classes.&#39;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ADDITION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self data PLUS other data) and labels</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if data sizes do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                    <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span>
+                        <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="n">new</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Data sizes did not match.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SUBTRACTION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self data MINUS other data) and labels</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if data sizes do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span>
+                        <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="n">new</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Data sizes did not match.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        MULTIPLICATION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self data TIMES other data) and labels</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if data sizes do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span>
+                        <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="n">new</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Data sizes did not match.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DIVISION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self data DIVIDED BY other data) and labels</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if data sizes do not match</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="p">,</span>
+                    <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_check</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="c1"># We can divide if shapes match or if either has one column, i.e. is a scalar</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="ow">or</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)):</span>
+                <span class="n">new</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+                        <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span>
+                        <span class="n">labels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()</span>
+                        <span class="p">)</span>
+                <span class="k">return</span> <span class="n">new</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Data sizes did not match.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;Data:&#39;</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">),</span>
+                <span class="s1">&#39;Labels:&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">)])</span></div>
+
+    <span class="c1">#def __setattr__(self,name,value):</span>
+    <span class="c1">#   if name in (&#39;_data&#39;, &#39;_labels&#39;, &#39;_truth&#39;):</span>
+    <span class="c1">#       raise AttributeError(&#39;Access %s through its set method&#39; % name)</span>
+    <span class="c1">#   else:</span>
+    <span class="c1">#       super(GTMOEPDataObject,self).__setattr__(name,value)</span>
+
+<div class="viewcode-block" id="FeatureData"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.FeatureData">[docs]</a><span class="k">class</span> <span class="nc">FeatureData</span><span class="p">(</span><span class="n">GTMOEPDataObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the parent class for feature type data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">FeatureData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="StreamData"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.StreamData">[docs]</a><span class="k">class</span> <span class="nc">StreamData</span><span class="p">(</span><span class="n">GTMOEPDataObject</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the parent class for stream type data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">StreamData</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OneToOne"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.OneToOne">[docs]</a><span class="k">class</span> <span class="nc">OneToOne</span><span class="p">(</span><span class="n">StreamData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents stream data where the target data lines up</span>
+<span class="sd">    on a one to one basis with the raw data, i.e. each point has a target value</span>
+<span class="sd">    in the time series.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">OneToOne</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OneToOne.slice"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.OneToOne.slice">[docs]</a>    <span class="k">def</span> <span class="nf">slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Slices each instance into pieces of size &#39;win&#39;.</span>
+<span class="sd">        - win must be &lt; len(self.labels)</span>
+<span class="sd">        - step must be &lt; win</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            win: window size (size of each &#39;chunk&#39;)</span>
+<span class="sd">            step: step size (how far forward to move chunk&#39;s starting position after each iteration)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_target</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="n">num_slices</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">)</span><span class="o">-</span><span class="n">win</span><span class="o">+</span><span class="n">step</span><span class="p">)</span><span class="o">/</span><span class="n">step</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">num_slices</span><span class="p">):</span>
+            <span class="n">new_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">[(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="p">):(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="o">+</span><span class="n">win</span><span class="p">)])</span>
+            <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="p">):(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="o">+</span><span class="n">win</span><span class="p">)])</span>
+            <span class="n">new_target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">[(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="p">):(</span><span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="o">+</span><span class="n">win</span><span class="p">)])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_labels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_target</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ManyToOne"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.ManyToOne">[docs]</a><span class="k">class</span> <span class="nc">ManyToOne</span><span class="p">(</span><span class="n">StreamData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents stream data where there is only one point of</span>
+<span class="sd">    target data per raw data, i.e. each series has a target value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">ManyToOne</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ManyToMany"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.ManyToMany">[docs]</a><span class="k">class</span> <span class="nc">ManyToMany</span><span class="p">(</span><span class="n">StreamData</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents stream data where there is only one point of</span>
+<span class="sd">    target data per raw data, i.e. each series has a target value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[]]),</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ManyToMany</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span></div>
+
+    <span class="c1"># def slice(self, step, win):</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Slice each instance in to pieces of size N</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     new_labels = []</span>
+    <span class="c1">#     new_data = []</span>
+    <span class="c1">#     new_target = []</span>
+
+    <span class="c1">#     self._labels = self._labels.flatten()</span>
+    <span class="c1">#     self._data = self._data.flatten()</span>
+    <span class="c1">#     self._target = self._target.flatten()</span>
+
+    <span class="c1">#     num_slices = (len(self._labels)-win+step)/step</span>
+
+    <span class="c1">#     for i in np.arange(num_slices):</span>
+    <span class="c1">#         new_labels.append(self._labels[(i*step):(i*step+win)])</span>
+    <span class="c1">#         new_data.append(self._data[(i*step):(i*step+win)])</span>
+    <span class="c1">#         new_target.append(self._target[(i*step):(i*step+win)])</span>
+
+    <span class="c1">#     self._labels = np.array(new_labels)</span>
+    <span class="c1">#     self._data = np.array(new_data)</span>
+    <span class="c1">#     self._target = np.array(new_target)</span>
+
+    <span class="c1"># def combine_targets(self, other):</span>
+    <span class="c1">#     if self.get_target().shape == other.get_target().shape:</span>
+    <span class="c1">#         return np.logical_or(self.get_target(), other.get_target())</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         raise ValueError(&#39;Target arrays have different sizes.&#39;)</span>
+
+<div class="viewcode-block" id="GTMOEPDataInstance"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance">[docs]</a><span class="k">class</span> <span class="nc">GTMOEPDataInstance</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a class where each implementation of it is a training or testing</span>
+<span class="sd">    instance GTMOEP will opperate on a deapDataInstance collection.</span>
+<span class="sd">    Methods will handle the collection of these instances.</span>
+
+<span class="sd">    Each deapDataInstance will contain two members</span>
+<span class="sd">        data:  a numpy.ndarray</span>
+<span class="sd">        truth: a scalar value on what the data should produce</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">features</span><span class="o">=</span><span class="n">FeatureData</span><span class="p">(),</span>
+            <span class="n">stream</span><span class="o">=</span><span class="n">StreamData</span><span class="p">(),</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_features</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.get_features"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.get_features">[docs]</a>    <span class="k">def</span> <span class="nf">get_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the feature object of the data instance.</span>
+<span class="sd">        The feature object will be of some subclass of FeatureData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_features</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.set_features"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.set_features">[docs]</a>    <span class="k">def</span> <span class="nf">set_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the feature object of a data instance,</span>
+<span class="sd">        features must be a subclass of FeatureData.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if feature is not a derived class of FeatureData</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">FeatureData</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_features</span> <span class="o">=</span> <span class="n">features</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Features need to be a derived class of FeatureData.&#39;</span>
+                    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.get_stream"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.get_stream">[docs]</a>    <span class="k">def</span> <span class="nf">get_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the stream object of the data instance.</span>
+<span class="sd">        The stream object will be of some subclass of StreamData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.set_stream"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.set_stream">[docs]</a>    <span class="k">def</span> <span class="nf">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the stream object of a data instance.</span>
+<span class="sd">        stream must be a subclass of StreamData.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if stream is not a derived class of StreamData</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stream</span><span class="p">,</span> <span class="n">StreamData</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span> <span class="o">=</span> <span class="n">stream</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Stream needs to be a derived class of StreamData&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.get_target"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.get_target">[docs]</a>    <span class="k">def</span> <span class="nf">get_target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the target for the data, i.e. The value the data represents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataInstance.set_target"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.set_target">[docs]</a>    <span class="k">def</span> <span class="nf">set_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the target array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">target</span></div>
+
+    <span class="c1"># Pulled this from the GTMOEPDataObject class to keep one target for both stream</span>
+    <span class="c1"># And features</span>
+<div class="viewcode-block" id="GTMOEPDataInstance.combine_targets"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataInstance.combine_targets">[docs]</a>    <span class="k">def</span> <span class="nf">combine_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Abstract placeholder of parent method</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span> <span class="c1">#or other.get_target()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_target</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Child class should implement this method&#39;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ADDITION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self features/stream PLUS other features/stream)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataInstance</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">combine_targets</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="fm">__add__</span><span class="p">))</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">get_features</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">get_stream</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SUBTRACTION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self features/stream MINUS other features/stream)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataInstance</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">combine_targets</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="fm">__sub__</span><span class="p">))</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">get_features</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">get_stream</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        MULTIPLICATION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self features/stream TIMES other features/stream)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataInstance</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">combine_targets</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">))</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">get_features</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">get_stream</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DIVISION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new object with (self features/stream DIVIDED BY other features/stream)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataInstance</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">combine_targets</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">operator</span><span class="o">.</span><span class="n">__div__</span><span class="p">))</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="o">.</span><span class="n">get_features</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="o">.</span><span class="n">get_stream</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataInstance</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">())</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_stream</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;Features:&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">()),</span>
+                          <span class="s1">&#39;Stream:&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_stream</span><span class="p">()),</span>
+                          <span class="s1">&#39;Target:&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_target</span><span class="p">())])</span></div>
+
+
+<div class="viewcode-block" id="GTMOEPData"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPData">[docs]</a><span class="k">class</span> <span class="nc">GTMOEPData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents the collection of instances in to a single</span>
+<span class="sd">    data set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">instances</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span>
+            <span class="n">subject_ids</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+            <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Subject ids are used for folding the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_instances</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span> <span class="o">=</span> <span class="n">subject_ids</span>
+
+<div class="viewcode-block" id="GTMOEPData.get_instances"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPData.get_instances">[docs]</a>    <span class="k">def</span> <span class="nf">get_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the instance list.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span></div>
+
+<div class="viewcode-block" id="GTMOEPData.set_instances"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPData.set_instances">[docs]</a>    <span class="k">def</span> <span class="nf">set_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instances</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the objects instances list with the given list of instances.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if instance not of GTMOEPDataInstances</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">GTMOEPDataInstance</span><span class="p">)</span> <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span>
+            <span class="p">):</span>
+            <span class="c1"># The copy is here, because otherwise two GTMOEPData instances</span>
+            <span class="c1"># Could share GTMOEPDataInstance instances, and a change to one</span>
+            <span class="c1"># would propagate to the other</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span> <span class="o">=</span> <span class="p">[</span><span class="n">instance</span> <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected an array of GTMOEPDataInstances&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTMOEPData.get_numpy"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPData.get_numpy">[docs]</a>    <span class="k">def</span> <span class="nf">get_numpy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the data objects features as a numpy array.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">instance</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span><span class="o">.</span><span class="n">get_data</span><span class="p">()[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+                        <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="GTMOEPData.get_orange"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPData.get_orange">[docs]</a>    <span class="k">def</span> <span class="nf">get_orange</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the data objects features and targets as an orange table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">numpy_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_numpy</span><span class="p">()</span>
+        <span class="n">numpy_classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">instance</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
+                                <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span><span class="p">])</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[</span><span class="n">Orange</span><span class="o">.</span><span class="n">feature</span><span class="o">.</span><span class="n">Continuous</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instances</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()]</span>
+        <span class="n">class_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">numpy_classes</span><span class="p">)]</span> <span class="c1">#+ [str(np.nan)]</span>
+        <span class="n">class_var</span> <span class="o">=</span> <span class="n">Orange</span><span class="o">.</span><span class="n">feature</span><span class="o">.</span><span class="n">Discrete</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">class_list</span><span class="p">)</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="n">Orange</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Domain</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">class_var</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Orange</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span>
+                                <span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span> <span class="k">for</span> <span class="n">inst</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">numpy_features</span><span class="p">,</span> <span class="n">numpy_classes</span><span class="p">)]</span>
+                                 <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ADDITION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new set with (self instances PLUS other instances)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span>  <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">)</span> <span class="ow">and</span>
+              <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+            <span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">+</span> <span class="n">inst_2</span> <span class="k">for</span> <span class="n">inst_1</span><span class="p">,</span> <span class="n">inst_2</span>
+                               <span class="ow">in</span>
+                               <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+                               <span class="p">])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">+</span> <span class="n">other</span> <span class="k">for</span> <span class="n">inst_1</span>
+                                   <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SUBTRACTION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new set with (self instances MINUS other instances)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">)</span>
+             <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+            <span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">-</span> <span class="n">inst_2</span> <span class="k">for</span> <span class="n">inst_1</span><span class="p">,</span> <span class="n">inst_2</span>
+                               <span class="ow">in</span>
+                               <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+                               <span class="p">])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">-</span> <span class="n">other</span> <span class="k">for</span> <span class="n">inst_1</span>
+                                   <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        MULTIPLICATION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new set with (self instances TIMES other instances)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+            <span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">*</span> <span class="n">inst_2</span> <span class="k">for</span> <span class="n">inst_1</span><span class="p">,</span> <span class="n">inst_2</span>
+                               <span class="ow">in</span>
+                               <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+                               <span class="p">])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">*</span> <span class="n">other</span> <span class="k">for</span> <span class="n">inst_1</span>
+                                   <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DIVISION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new set with (self instances DIVIDED BY other instances)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+            <span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">/</span> <span class="n">inst_2</span> <span class="k">for</span> <span class="n">inst_1</span><span class="p">,</span> <span class="n">inst_2</span>
+                               <span class="ow">in</span>
+                               <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+                               <span class="p">])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">(</span><span class="n">subject_ids</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_subject_ids</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">set_instances</span><span class="p">([</span><span class="n">inst_1</span> <span class="o">/</span> <span class="n">other</span> <span class="k">for</span> <span class="n">inst_1</span>
+                                   <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">instance</span><span class="p">)</span> <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span></div>
+
+
+<div class="viewcode-block" id="GTMOEPDataPairIn"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPairIn">[docs]</a><span class="k">class</span> <span class="nc">GTMOEPDataPairIn</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="GTMOEPDataPair"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair">[docs]</a><span class="k">class</span> <span class="nc">GTMOEPDataPair</span><span class="p">(</span><span class="n">GTMOEPDataPairIn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class groups together a training and testing data object,</span>
+<span class="sd">    so that they may be passed around the genetic programming structure</span>
+<span class="sd">    in tandem.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_train_data</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_test_data</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_data</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="o">=</span> <span class="n">GTMOEPData</span><span class="p">()</span>
+
+<div class="viewcode-block" id="GTMOEPDataPair.get_train_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair.get_train_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_train_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the training data set,</span>
+<span class="sd">        data is of class GTMOEPData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_data</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataPair.set_train_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair.set_train_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_train_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the training data set,</span>
+<span class="sd">        train_data must be of type GTMOEPData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_data</span> <span class="o">=</span> <span class="n">train_data</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataPair.get_test_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair.get_test_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_test_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the testing data set,</span>
+<span class="sd">        data is of class GTMOEPData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataPair.set_test_data"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair.set_test_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_test_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the testing data set,</span>
+<span class="sd">        data is of class GTMOEPData.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">GTMOEPData</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="o">=</span> <span class="n">test_data</span></div>
+
+<div class="viewcode-block" id="GTMOEPDataPair.get_sha1"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.data.GTMOEPDataPair.get_sha1">[docs]</a>    <span class="k">def</span> <span class="nf">get_sha1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the sha1 hash of the data pair.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pickled_string</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">hash_function</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">()</span>
+        <span class="n">hash_function</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pickled_string</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hash_function</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ADDITION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new GTMOEPDataPair with (self train_data/test_data PLUS other train_data/test_data)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">+</span> <span class="n">other</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SUBTRACTION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new GTMOEPDataPair with (self train_data/test_data MINUS other train_data/test_data)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">-</span> <span class="n">other</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        MULTIPLICATION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new GTMOEPDataPair with (self train_data/test_data TIMES other train_data/test_data)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">*</span> <span class="n">other</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__div__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DIVISION</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A new GTMOEPDataPair with (self train_data/test_data DIVIDED BY other train_data/test_data)</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if type of other is incompatible with operation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+                                                     <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">GTMOEPDataPair</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()</span> <span class="o">/</span> <span class="n">other</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">new</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incompatible operation for type </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()),</span>
+                          <span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">())])</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

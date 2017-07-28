@@ -1,0 +1,376 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.selection_methods &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.selection_methods</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Programmed by Jason Zutty</span>
+<span class="sd">Modified by VIP Team</span>
+<span class="sd">Implements a number of population selection methods for use with deap</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">sklearn.covariance</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+
+<div class="viewcode-block" id="selTournamentDCD"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.selTournamentDCD">[docs]</a><span class="k">def</span> <span class="nf">selTournamentDCD</span><span class="p">(</span><span class="n">individuals</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">acceptable</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">penalty_factor</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Taken from DEAP as a starting point</span>
+<span class="sd">    Tournament selection based on dominance (D) between two individuals, if</span>
+<span class="sd">    the two individuals do not interdominate the selection is made</span>
+<span class="sd">    based on crowding distance (CD). The *individuals* sequence length has to</span>
+<span class="sd">    be a multiple of 4. Starting from the beginning of the selected</span>
+<span class="sd">    individuals, two consecutive individuals will be different (assuming all</span>
+<span class="sd">    individuals in the input list are unique). Each individual from the input</span>
+<span class="sd">    list won&#39;t be selected more than twice.</span>
+
+<span class="sd">    This selection requires the individuals to have a :attr:`crowding_dist`</span>
+<span class="sd">    attribute, which can be set by the :func:`assignCrowdingDist` function.</span>
+
+<span class="sd">    :param individuals: A list of individuals to select from.</span>
+<span class="sd">    :param k: The number of individuals to select.</span>
+<span class="sd">    :returns: A list of selected individuals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">tourn</span><span class="p">(</span><span class="n">ind1</span><span class="p">,</span> <span class="n">ind2</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ind1</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">dominates</span><span class="p">(</span><span class="n">ind2</span><span class="o">.</span><span class="n">fitness</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">ind1</span>
+        <span class="k">elif</span> <span class="n">ind2</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">dominates</span><span class="p">(</span><span class="n">ind1</span><span class="o">.</span><span class="n">fitness</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">ind2</span>
+
+        <span class="k">if</span> <span class="n">ind1</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">crowding_dist</span> <span class="o">&lt;</span> <span class="n">ind2</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">crowding_dist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ind2</span>
+        <span class="k">elif</span> <span class="n">ind1</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">crowding_dist</span> <span class="o">&gt;</span> <span class="n">ind2</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">crowding_dist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ind1</span>
+
+        <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ind1</span>
+        <span class="k">return</span> <span class="n">ind2</span>
+
+    <span class="c1"># Let&#39;s start by extracting our objective scores from the population of individuals</span>
+    <span class="n">population</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">individual</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">individual</span> <span class="ow">in</span> <span class="n">individuals</span><span class="p">])</span>
+    <span class="c1"># Now we will create a weights object which will eventually correspond to a probability of mating</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">,)))</span>
+    <span class="c1"># Iterate through population to compute weights for each individual</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)):</span>
+        <span class="n">difference_to_acceptable</span> <span class="o">=</span> <span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">acceptable</span>
+        <span class="n">difference_to_goal</span> <span class="o">=</span> <span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">goal</span>
+        <span class="c1"># Let&#39;s now add a penalty for all objectives that are greater than the acceptable level</span>
+        <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">penalty_factor</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">difference_to_acceptable</span><span class="p">[</span><span class="n">difference_to_acceptable</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># And a similar penalty for all objectives that are greater than a goal level without the relative scale factor</span>
+        <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">difference_to_goal</span><span class="p">[</span><span class="n">difference_to_goal</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># Invert so higher values are now worse</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">weights</span>
+    <span class="c1"># If all of the weights are zero, the normalization will return nans</span>
+    <span class="c1"># We will just reset everything to one</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">weights</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">,)))</span>
+    <span class="c1"># Now let&#39;s get a relative performance by normalizing</span>
+    <span class="n">weights</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+    <span class="c1"># Set weight zero to a very small value instead, this occurs when objective scores are infs</span>
+    <span class="n">weights</span><span class="p">[</span><span class="n">weights</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
+
+    <span class="n">chosen</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+        <span class="c1"># Let&#39;s now take two random samples of the data, from a biased selection method</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">individuals_1_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">individuals</span><span class="p">)),</span> <span class="mi">4</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> <span class="n">weights</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="n">individuals_2_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">individuals</span><span class="p">)),</span> <span class="mi">4</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="c1"># We need to operate this way due to the fact that individuals is a list of lists. (Because of ADFs)</span>
+        <span class="n">individuals_1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">individuals</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">individuals_1_index</span><span class="p">)</span>
+        <span class="n">individuals_2</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">individuals</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">individuals_2_index</span><span class="p">)</span>
+
+        <span class="n">chosen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tourn</span><span class="p">(</span><span class="n">individuals_1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>   <span class="n">individuals_1</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">chosen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tourn</span><span class="p">(</span><span class="n">individuals_1</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">individuals_1</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+        <span class="n">chosen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tourn</span><span class="p">(</span><span class="n">individuals_2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>   <span class="n">individuals_2</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">chosen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tourn</span><span class="p">(</span><span class="n">individuals_2</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">individuals_2</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">chosen</span></div>
+
+
+
+<div class="viewcode-block" id="sample"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.sample">[docs]</a><span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">trials</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a method for performing a truncated normal multivaraite sampling</span>
+<span class="sd">    :param means: list of expected values of length N</span>
+<span class="sd">    :param cov: covariance matrix size NxN</span>
+<span class="sd">    :param trials: number of samples to draw</span>
+<span class="sd">    :param a: vector of lower bounds length N</span>
+<span class="sd">    :param b: vector of upper bounds length N</span>
+<span class="sd">    :return: list of samples NxTrials</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dimensions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">means</span><span class="p">)</span>
+
+
+
+    <span class="c1"># Get the precision matrix</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span><span class="p">)</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">trials</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">))</span>
+    <span class="c1"># Let&#39;s pick a start value for our chain as the mean (Look in to a better one?)</span>
+    <span class="n">samples</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">means</span>
+
+    <span class="n">i_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)</span>
+    <span class="n">not_i_s</span> <span class="o">=</span> <span class="p">[</span><span class="n">i_s</span><span class="p">[</span><span class="n">i_s</span> <span class="o">!=</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">dimensions</span><span class="p">)]</span>
+    <span class="n">H_invs</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+    <span class="n">sigmas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">H_invs</span><span class="p">)</span>
+    <span class="n">sigmas_inv</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">sigmas</span>
+
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">trials</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">):</span>
+            <span class="c1"># Index not i</span>
+            <span class="n">not_i</span> <span class="o">=</span> <span class="n">not_i_s</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">x_not_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">samples</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:</span><span class="n">i</span><span class="p">],</span> <span class="n">samples</span><span class="p">[</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:]))</span>
+
+            <span class="c1"># Get the conditional mean for dimension i</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">means</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">H_invs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">not_i</span><span class="p">],</span> <span class="n">x_not_i</span><span class="o">-</span><span class="n">means</span><span class="p">[</span><span class="n">not_i</span><span class="p">])</span>
+            <span class="c1"># Get the conditional standard deviation</span>
+            <span class="n">sigma_inv</span> <span class="o">=</span> <span class="n">sigmas_inv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigmas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="c1"># Let&#39;s sample the conditional univariate truncated normal</span>
+            <span class="c1"># Start with a uniform random number</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span>
+            <span class="c1"># Next transform to truncated normal</span>
+            <span class="c1"># ndtri is inverse norm</span>
+            <span class="n">cdf_a</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">ndtr</span><span class="p">((</span><span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">mu</span><span class="p">)</span><span class="o">*</span><span class="n">sigma_inv</span><span class="p">)</span>
+            <span class="n">cdf_b</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">ndtr</span><span class="p">((</span><span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">mu</span><span class="p">)</span><span class="o">*</span><span class="n">sigma_inv</span><span class="p">)</span>
+            <span class="n">trunc_normal</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">ndtri</span><span class="p">(</span><span class="n">u</span><span class="o">*</span><span class="p">(</span><span class="n">cdf_b</span> <span class="o">-</span> <span class="n">cdf_a</span><span class="p">)</span> <span class="o">+</span> <span class="n">cdf_a</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">mu</span><span class="o">+</span><span class="n">sigma</span><span class="o">*</span><span class="n">trunc_normal</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+                <span class="c1"># My hunch is currently that algorithms that operate outside the bounds of their variables will need to</span>
+                <span class="c1"># be forced to their bounds i.e. if means[i] &lt; a or means[i] &gt; b</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="s1">&#39;mu&#39;</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="s1">&#39;sigma&#39;</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">means</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cdfa&#39;</span><span class="p">,</span> <span class="n">cdf_a</span><span class="p">,</span> <span class="s1">&#39;cdfb&#39;</span><span class="p">,</span> <span class="n">cdf_b</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;all means&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">mean</span> <span class="k">for</span> <span class="n">mean</span> <span class="ow">in</span> <span class="n">means</span><span class="p">])</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Should not have gotten here&#39;</span><span class="p">)</span>
+            <span class="n">samples</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+
+    <span class="k">return</span> <span class="n">samples</span></div>
+
+
+
+<div class="viewcode-block" id="dominates"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.dominates">[docs]</a><span class="k">def</span> <span class="nf">dominates</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Test if a dominates b</span>
+<span class="sd">    :param a:</span>
+<span class="sd">    :param b:</span>
+<span class="sd">    :return: boolean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="n">b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="my_pareto"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.my_pareto">[docs]</a><span class="k">def</span> <span class="nf">my_pareto</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">pareto_points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">data_point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="n">pareto_status</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">pareto_points_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">pareto_points</span><span class="p">:</span>
+            <span class="c1"># If a pareto point dominates our point, we already know we are not pareto</span>
+            <span class="k">if</span> <span class="n">dominates</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_point</span><span class="p">):</span>
+                <span class="n">pareto_status</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="c1"># If our point dominates a Pareto point, that point is no longer Pareto</span>
+            <span class="k">if</span> <span class="n">dominates</span><span class="p">(</span><span class="n">data_point</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]):</span>
+                <span class="n">pareto_points_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+        <span class="c1"># Remove elements by value</span>
+        <span class="k">for</span> <span class="n">non_pareto_point</span> <span class="ow">in</span> <span class="n">pareto_points_to_remove</span><span class="p">:</span>
+            <span class="n">pareto_points</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">non_pareto_point</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pareto_status</span><span class="p">:</span>
+            <span class="n">pareto_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pareto_points</span></div>
+
+
+<div class="viewcode-block" id="find_pareto"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.find_pareto">[docs]</a><span class="k">def</span> <span class="nf">find_pareto</span><span class="p">(</span><span class="n">sample_row</span><span class="p">,</span> <span class="n">num_objectives</span><span class="p">):</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">sample_row</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_objectives</span><span class="p">))</span>
+    <span class="n">p_front_inds</span> <span class="o">=</span> <span class="n">my_pareto</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p_front_inds</span></div>
+
+<div class="viewcode-block" id="fuzzy_select"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.selection_methods.fuzzy_select">[docs]</a><span class="k">def</span> <span class="nf">fuzzy_select</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">gen</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tests</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e4</span><span class="p">),</span> <span class="n">output_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">objectives</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;tp_vec&#39;</span><span class="p">,</span> <span class="s1">&#39;fp_vec&#39;</span><span class="p">,</span> <span class="s1">&#39;n_elems&#39;</span><span class="p">],</span>
+                 <span class="n">a</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">280</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method implements a fuzzy selection based upon a probability of dominance for each individual.</span>
+
+<span class="sd">    :param population: list of individuals</span>
+<span class="sd">    :param k: number of individuals to select</span>
+<span class="sd">    :param gen: generation number, used for logging</span>
+<span class="sd">    :param tests: number of Monte Carlo samples to draw</span>
+<span class="sd">    :param output_filename: name of output file, also used for logging</span>
+<span class="sd">    :param objectives: names of objectives to be used for extracting test case vectors</span>
+<span class="sd">    :param a: lower bounds per objective</span>
+<span class="sd">    :param b: upper bounds per objective</span>
+<span class="sd">    :return: list of parents</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Now let&#39;s try to monte carlo the whole population</span>
+    <span class="c1"># First we need to build a covariance matrix from a matrix m</span>
+    <span class="c1"># m will have each row represent a solution vector (variable) and each column</span>
+    <span class="c1"># will be an observation</span>
+
+    <span class="c1"># Let&#39;s begin by collection our test case vectors for each objective</span>
+    <span class="n">objective_mats</span> <span class="o">=</span><span class="p">{}</span>
+    <span class="k">for</span> <span class="n">objective</span> <span class="ow">in</span> <span class="n">objectives</span><span class="p">:</span>
+        <span class="n">objective_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">objective</span><span class="p">)</span> <span class="k">for</span> <span class="n">individual</span> <span class="ow">in</span> <span class="n">population</span><span class="p">])</span>
+        <span class="n">objective_mats</span><span class="p">[</span><span class="n">objective</span><span class="p">]</span> <span class="o">=</span> <span class="n">objective_array</span>
+
+    <span class="c1"># At this point we have a matrix for both objectives, but we want an interleaved</span>
+    <span class="c1"># matrix so that we can compare the covariances of each individual on each Objective</span>
+    <span class="c1"># To do this, we need to regularize the behavioral vectors in to an equal number of bins</span>
+    <span class="n">BINS</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">objective_mats</span><span class="p">[</span><span class="n">objective</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">objective</span> <span class="ow">in</span> <span class="n">objectives</span><span class="p">))</span>
+    <span class="c1"># Compute pad sizes</span>
+    <span class="n">pads</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">objective</span> <span class="ow">in</span> <span class="n">objectives</span><span class="p">:</span>
+        <span class="n">pad_size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">objective_mats</span><span class="p">[</span><span class="n">objective</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">BINS</span><span class="p">)</span> <span class="o">*</span> <span class="n">BINS</span> <span class="o">-</span> <span class="n">objective_mats</span><span class="p">[</span><span class="n">objective</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">pads</span><span class="p">[</span><span class="n">objective</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">pad_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+
+    <span class="n">observation_matrix</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Iterate through individuals</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">objective</span> <span class="ow">in</span> <span class="n">objectives</span><span class="p">:</span>
+            <span class="c1"># First pad so that our row is evenly divisible</span>
+            <span class="n">objective_row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">objective_mats</span><span class="p">[</span><span class="n">objective</span><span class="p">][</span><span class="n">i</span><span class="p">,</span> <span class="p">:],</span> <span class="n">pads</span><span class="p">[</span><span class="n">objective</span><span class="p">])</span>
+            <span class="n">objective_row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">objective_row</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">BINS</span><span class="p">))</span>
+            <span class="n">objective_row</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">objective_row</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">observation_matrix</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">objective_row</span><span class="p">)</span>
+
+    <span class="n">observation_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observation_matrix</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="c1"># Let&#39;s divide the observation matrix by the square root of the number of samples so that the variance will be</span>
+    <span class="c1"># on the mean not the samples.  This should be the same as dividing the resultant matrix by the number of samples</span>
+    <span class="n">scaled_observation_matrix</span> <span class="o">=</span> <span class="n">observation_matrix</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">BINS</span><span class="p">))</span>
+
+    <span class="c1"># Ledoit wolf expects samples, features</span>
+    <span class="n">observation_covariance</span><span class="p">,</span> <span class="n">shrinkage</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">covariance</span><span class="o">.</span><span class="n">ledoit_wolf</span><span class="p">(</span><span class="n">scaled_observation_matrix</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="c1"># Let&#39;s back out the means and covariance of the underlying normal</span>
+    <span class="n">means_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">observation_matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">random_sampling</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">means_vector</span><span class="p">,</span> <span class="n">observation_covariance</span><span class="p">,</span> <span class="n">tests</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">),</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">))</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">totals_bin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">find_pareto_partial</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">find_pareto</span><span class="p">,</span> <span class="n">num_objectives</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">objectives</span><span class="p">))</span>
+    <span class="n">pareto_inds_list</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">find_pareto_partial</span><span class="p">,</span> <span class="n">random_sampling</span><span class="p">)</span>
+    <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">p_front_inds</span> <span class="ow">in</span> <span class="n">pareto_inds_list</span><span class="p">:</span>
+        <span class="n">totals_bin</span><span class="p">[</span><span class="n">p_front_inds</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">totals_bin</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">random_sampling</span><span class="p">))</span>
+    <span class="n">totals_bin</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">totals_bin</span><span class="p">))</span>
+    <span class="c1"># Now we will use these probabilities to randomly select k individuals</span>
+    <span class="n">next_gen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)),</span> <span class="n">k</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">totals_bin</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># if DEBUG:</span>
+    <span class="c1"># If debug is defined to be true, we are going to write out the current population selection</span>
+    <span class="c1"># is being performed on</span>
+    <span class="k">if</span> <span class="n">gen</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">fuzzy_pop_log</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span>
+        <span class="n">output_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">gen</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">),</span> <span class="mi">1</span><span class="p">)),</span>
+                                   <span class="c1"># FP</span>
+                                   <span class="n">means_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                                   <span class="c1"># TP</span>
+                                   <span class="n">means_vector</span><span class="p">[::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                                   <span class="c1"># Len</span>
+                                   <span class="n">means_vector</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)),</span>
+                                   <span class="c1"># Prob number of selections</span>
+                                   <span class="n">totals_bin</span> <span class="o">*</span> <span class="n">k</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">fuzzy_pop_log</span><span class="p">,</span> <span class="n">output_matrix</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">next_gen</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,996 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.gp_framework_helper &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.gp_framework_helper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Coded by Jason Zutty</span>
+<span class="sd">Modified by VIP Team</span>
+<span class="sd">Module to organize primitive and terminal additions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">deap</span> <span class="k">import</span> <span class="n">gp</span>
+<span class="kn">import</span> <span class="nn">GPFramework.methods</span> <span class="k">as</span> <span class="nn">methods</span>
+<span class="kn">import</span> <span class="nn">GPFramework.signal_methods</span> <span class="k">as</span> <span class="nn">sm</span>
+<span class="kn">import</span> <span class="nn">GPFramework.feature_selection_methods</span> <span class="k">as</span> <span class="nn">feature_selection</span>
+<span class="kn">import</span> <span class="nn">GPFramework.spatial_methods</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">from</span> <span class="nn">GPFramework.data</span> <span class="k">import</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPairIn</span>
+<span class="kn">import</span> <span class="nn">operator</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">from</span> <span class="nn">GPFramework</span> <span class="k">import</span> <span class="n">general_functions</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+
+
+<div class="viewcode-block" id="GPFrameworkHelper"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.GPFrameworkHelper">[docs]</a><span class="k">class</span> <span class="nc">GPFrameworkHelper</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class to help organize primitive and terminal additions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize number of rows and columns of observation matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+        <span class="c1"># self.trainVec = trainVec</span>
+        <span class="c1"># self.rows, self.cols = self.trainMat.shape</span>
+
+
+<div class="viewcode-block" id="LearnerType"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.LearnerType">[docs]</a><span class="k">class</span> <span class="nc">LearnerType</span><span class="p">:</span>
+
+    <span class="c1"># bestEstimator = None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">learnerName</span><span class="p">,</span> <span class="n">learnerParams</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learnerName</span> <span class="o">=</span> <span class="n">learnerName</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">learnerParams</span> <span class="o">=</span> <span class="n">learnerParams</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># return str(self.learnerName) + str(self.learnerParams)</span>
+        <span class="k">return</span> <span class="s1">&#39;learnerType(</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">learnerName</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">, &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span></div>
+
+    <span class="c1"># def set_best(self, best_estimator):</span>
+    <span class="c1">#     self.bestEstimator = best_estimator</span>
+
+<div class="viewcode-block" id="TriState"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.TriState">[docs]</a><span class="k">class</span> <span class="nc">TriState</span><span class="p">(</span><span class="nb">int</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class which can take on three possible values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Value must be 0, 1, or 2&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TriState</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="addPrimitives"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.addPrimitives">[docs]</a><span class="k">def</span> <span class="nf">addPrimitives</span><span class="p">(</span><span class="n">pset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Takes in a pset and adds primitives</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pset: primitive set</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add primitive to select observation</span>
+    <span class="c1"># pset.addPrimitive(methods.obsSelect,[&#39;obsMat&#39;,&#39;obsVec&#39;,&#39;obsNum&#39;],&#39;obsTup&#39;)</span>
+    <span class="c1"># Add primitive to select feature</span>
+    <span class="c1"># pset.addPrimitive(methods.featSelect,[&#39;obsMat&#39;,&#39;obsVec&#39;,&#39;featNum&#39;],&#39;featTup&#39;)</span>
+    <span class="c1"># Add primitive for bayesian learner</span>
+    <span class="c1"># pset.addPrimitive(methods.bayes,[&#39;orangeTable&#39;,&#39;orangeTable&#39;],&#39;orangeTable&#39;)</span>
+
+    <span class="c1"># Add signal processing methods</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetDiv, [deapDataPair, deapDataPair], deapDataPair, name = &#39;myDataSetDiv&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetAdd, [deapDataPair, deapDataPair], deapDataPair, name = &#39;myDataSetAdd&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetSub, [deapDataPair, deapDataPair], deapDataPair, name = &#39;myDataSetSub&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetMult, [deapDataPair, deapDataPair],</span>
+    <span class="c1"># deapDataPair, name = &#39;myDataSetMult&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetDivScaler, [deapDataPair, float], deapDataPair, name = &#39;myDataSetDivScaler&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetAddScaler, [deapDataPair, float], deapDataPair, name = &#39;myDataSetAddScaler&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetSubScaler, [deapDataPair, float], deapDataPair, name = &#39;myDataSetSubScaler&#39;)</span>
+    <span class="c1"># pset.addPrimitive(sm.dataSetMultScaler, [deapDataPair, float],</span>
+    <span class="c1"># deapDataPair, name = &#39;myDataSetMultScaler&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lessThan&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">le</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;lessThanOrEqual&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;greaterThan&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">ge</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;greaterThanEqual&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">eq</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;equal&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">ne</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;notEqual&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">and_</span><span class="p">,</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myAnd&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">or_</span><span class="p">,</span> <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myOr&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">not_</span><span class="p">,</span> <span class="p">[</span><span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myNot&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenBool&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenDataPair&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then_else</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenElseFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then_else</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenElseBool&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">if_then_else</span><span class="p">,</span>
+        <span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="s1">&#39;ifThenElseDataPair&#39;</span><span class="p">)</span>
+
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">truediv</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDeapDataDiv&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(op.div, [deapDataPair, deapDataPair], deapDataPair,</span>
+    <span class="c1"># name = &#39;myDeapDataDiv&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">truediv</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFloatDiv&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">floordiv</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntDiv&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDeapDataMult&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(op.mul, [deapDataPair, deapDataPair], deapDataPair,</span>
+    <span class="c1"># name = &#39;myDeapDataMult&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFloatMult&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntMult&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">add</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDeapDataAdd&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(op.add, [deapDataPair, deapDataPair], deapDataPair,</span>
+    <span class="c1"># name = &#39;myDeapDataAdd&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFloatAdd&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntAdd&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDeapDataSub&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(op.sub, [deapDataPair, deapDataPair], deapDataPair,</span>
+    <span class="c1"># name = &#39;myDeapDataSub&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFloatSub&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntSub&#39;</span><span class="p">)</span>
+
+
+    <span class="c1"># Primitives to support lists</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span> <span class="nb">list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myListAppend&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">general_functions</span><span class="o">.</span><span class="n">to_list</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntToList&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_if_then_else</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIfThenElse&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_averager</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myAverager&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_diff</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDiff&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_auto_corr</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myAutoCorr&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_dct</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDCT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_hann</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myHann&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_hamming</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myHamming&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_tukey</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myTukey&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_cosine</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCosine&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_lanczos</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myLanczos&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_triangular</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myTriangular&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_bartlett</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myBartlett&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_gaussian</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myGaussian&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_bartlett_hann</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myBartlettHann&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_blackman</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myBlackman&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_kaiser</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myKaiser&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_planck_taper</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myPlanckTaper&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_nuttall</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myNuttall&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_blackman_harris</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myBlackmanHarris&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_blackman_nuttall</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myBlackmanNuttall&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">window_flat_top</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFlatTop&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">sub_sample_data</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;mySubSampleData&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_fft</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFFT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_norm</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myNorm&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_rms_2d</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myRMS2D&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_sum</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySum&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_cum_sum</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCumSum&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_prod</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myProd&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_cum_prod</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCumProd&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_abs</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myAbs&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_log</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myLog&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_arcsine</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myArcSineMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_arccosine</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myArcCosineMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_arctangent</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myArcTangentMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_sine</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySineMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_cosine</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCosineMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_tangent</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myTangentMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_exp</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myExpMath&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_round</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myRound&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_cross_corr</span><span class="p">,</span> <span class="p">[</span>
+                      <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCrossCorr&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_dwt</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myDWT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">remove_feature</span><span class="p">,</span> <span class="p">[</span>
+                      <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myRemoveFeature&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_kalman_filter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;kalman&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_linear_predictive_coding</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LPC&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_wiener_filter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;wiener&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_savitzky_golay_filter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;savGol&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_pca</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myPCA&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_sparse_pca</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySparsePCA&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_ica</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myICA&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_spectral_embedding</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySpectralEmbedding&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_peak_finder</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myPeakFinder&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_informed_search</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myInformedSearch&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">cut_data_lead</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myCutDataLead&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_rebase</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myRebase&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(sm.gaussian_hmm,</span>
+    <span class="c1">#     [GTMOEPDataPair, int], GTMOEPDataPair,</span>
+    <span class="c1">#     name=&#39;myGaussianHmm&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_ecdf</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myECDF&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">select_range</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;selectRange&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">my_concatenate</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">TriState</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span> <span class="o">=</span><span class="s1">&#39;myConcatenate&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_k_best_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelKBest&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_percentile_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelPercentile&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_fpr_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelFpr&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_fdr_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelFdr&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_generic_univariate_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelGenUni&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">select_fwe_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mySelFwe&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">variance_threshold_scikit</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myVarThresh&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">my_pass_through</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;passInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">my_pass_through</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;passFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">my_pass_through</span><span class="p">,</span> <span class="p">[</span><span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;passBool&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">my_pass_through</span><span class="p">,</span> <span class="p">[</span><span class="n">TriState</span><span class="p">],</span> <span class="n">TriState</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;passTriState&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">my_pass_through</span><span class="p">,</span> <span class="p">[</span><span class="nb">list</span><span class="p">],</span> <span class="nb">list</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;passList&#39;</span><span class="p">)</span>
+
+    <span class="c1">#pset.addPrimitive(pass_data_in, [GTMOEPDataPairIn], GTMOEPDataPairIn, name=&#39;passDataIn&#39;)</span>
+    <span class="c1">#pset.addPrimitive(general_functions.consume_data, [GTMOEPDataPairIn], GTMOEPDataPair, name=&#39;dataIn&#39;)</span>
+
+    <span class="c1"># Convert from ints to floats and back</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">myRound</span><span class="p">,</span> <span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myFloatToInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;myIntToFloat&#39;</span><span class="p">)</span>
+
+    <span class="c1"># pset.addPrimitive(self.passTrain, [trainDeapData], trainDeapData, name = &#39;passTrain&#39;)</span>
+    <span class="c1"># pset.addPrimitive(self.passTest, [testDeapData], testDeapData, name =</span>
+    <span class="c1"># &#39;passTest&#39;)</span>
+
+    <span class="c1"># pset.addPrimitive(methods.bayes,[deapDataPair], deapDataPair, name = &#39;Bayes&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.trees,[deapDataPair], deapDataPair, name = &#39;Trees&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.svm,[deapDataPair,bool], deapDataPair, name = &#39;SVM&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.lsvm,[deapDataPair,bool], deapDataPair, name = &#39;LSVM&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.svmFE,[deapDataPair,int], deapDataPair, name = &#39;SVMFE&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.knn,[deapDataPair], deapDataPair, name = &#39;KNN&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.ann,[deapDataPair], deapDataPair, name = &#39;ANN&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.randomForest,[deapDataPair], deapDataPair,</span>
+    <span class="c1"># name = &#39;RandForest&#39;)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">methods</span><span class="o">.</span><span class="n">single_learner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">LearnerType</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;SingleLearner&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">methods</span><span class="o">.</span><span class="n">bagged_learner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">LearnerType</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;BaggedLearner&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">methods</span><span class="o">.</span><span class="n">adaboost_learner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">LearnerType</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;AdaBoostLearner&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">methods</span><span class="o">.</span><span class="n">grid_learner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">LearnerType</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;GridSearchLearner&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sm</span><span class="o">.</span><span class="n">copy_stream_to_target</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;CopyStreamToTarget&#39;</span><span class="p">)</span>
+    <span class="c1">#pset.addPrimitive(methods.boostedLearner,</span>
+    <span class="c1">#    [GTMOEPDataPair, LearnerType], GTMOEPDataPair,</span>
+    <span class="c1">#    name=&#39;BoostedLearner&#39;)</span>
+    <span class="c1">#pset.addPrimitive(methods.baggedLearner,</span>
+    <span class="c1">#    [GTMOEPDataPair, LearnerType], GTMOEPDataPair,</span>
+    <span class="c1">#    name=&#39;BaggedLearner&#39;)</span>
+    <span class="c1"># pset.addPrimitive(methods.stackedLearner, [deapDataPair, learnerType,</span>
+    <span class="c1"># learnerType], deapDataPair, name = &#39;StackedLearner2&#39;)</span>
+
+    <span class="c1"># pset.addPrimitive(methods.rules,[deapDataPair], deapDataPair, name =</span>
+    <span class="c1"># &#39;Rules&#39;)</span>
+
+    <span class="c1"># Decided to try and do this after each machine learner.... this may or may not be the best solution</span>
+    <span class="c1"># pset.addPrimitive(sm.makeFeatureFromClass,[deapDataPair],deapDataPair,</span>
+    <span class="c1"># name = &#39;myFeatureFromClass&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">modifyLearner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">LearnerType</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">LearnerType</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ModifyLearnerInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">modifyLearner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">LearnerType</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="n">LearnerType</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ModifyLearnerBool&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">modifyLearner</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">LearnerType</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">LearnerType</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ModifyLearnerFloat&#39;</span><span class="p">)</span>
+    <span class="c1"># pset.addPrimitive(modifyLearner,</span>
+    <span class="c1">#     [LearnerType, list], LearnerType,</span>
+    <span class="c1">#     name=&#39;ModifyLearnerList&#39;)</span>
+
+    <span class="c1"># Spatial Primitives</span>
+    <span class="c1"># utility methods</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">minimum_to_zero</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;myMin2Zero&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">to_uint8</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ToUint8&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">to_uint8_scale</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ToUint8scale&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">to_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ToFloat&#39;</span><span class="p">)</span>
+
+    <span class="c1"># edge detection</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">to_float_normalize</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ToFloatNorm&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">edge_detection_canny</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;canny&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">corner_detection_harris</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;cornerHarris&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">corner_detection_min_eigen_val</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;cornerEigen&#39;</span><span class="p">)</span>
+
+    <span class="c1"># filtering</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_fourier_ellipsoid</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfEllipsoid&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_fourier_shift</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfShift&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_fourier_shift</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfShift&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_fourier_gaussian</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfGaus&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_fourier_uniform</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfUniform&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_unsharp_mask</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfUnsharp&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_laplacian</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfLap&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">highpass_sobel_derivative</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span>  <span class="nb">int</span><span class="p">,</span>  <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hpfSobel&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_filter_median</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfMedian&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">median_blur</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;medianBlur&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_filter_average</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfAvg&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">blur</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfBlur&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_filter_gaussian</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfGaus&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_filter_bilateral</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfBilateral&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_fourier_ellipsoid</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfEllipsoid&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_fourier_gaussian</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfGausFourier&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">lowpass_fourier_uniform</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lpfUniform&#39;</span><span class="p">)</span>
+
+    <span class="c1"># threshold</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">threshold_binary</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tshBin&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">threshold_to_zero</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tshZero&#39;</span><span class="p">)</span>
+
+    <span class="c1"># morphological</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_erosion_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;erosionRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_erosion_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;erosionEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_erosion_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;erosionCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_dilate_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dilateRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_dilate_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dilateEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_dilate_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dilateCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_open_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;openRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_open_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;openEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_open_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;openCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_close_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;closeRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_close_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;closeEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_close_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;closeCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_gradient_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gradRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_gradient_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gradEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_gradient_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gradCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_tophat_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;topRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_tophat_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;topEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_tophat_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;topCross&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_blackhat_rect</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;blackRect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_blackhat_ellipse</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;blackEllipse&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">morph_blackhat_cross</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;blackCross&#39;</span><span class="p">)</span>
+
+    <span class="c1"># scalar mathematical operations</span>
+    <span class="c1"># two version of the same function because some images are floating point and some are integer</span>
+    <span class="c1"># I do not want to limit the function to only one of the two</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_add</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scAddInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_add_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scAddFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_subtract</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scSubInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_subtract_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scSubFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_multiply</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scMulInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_multiply_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scMulFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_divide</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scDivInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_divide_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scDivFloat&#39;</span><span class="p">)</span>
+
+    <span class="c1"># logic operators</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bitAnd&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bitNot&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">bitwise_or</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bitOr&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">bitwise_xor</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bitXor&#39;</span><span class="p">)</span>
+
+    <span class="c1"># image mathematical operations</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">absdiff</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_absdiff&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">add</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_add&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">add_weighted</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;addWeightInt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">add_weighted_float</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;addWeightFloat&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">add_weighted_scale</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;addWeightScale&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">subtract</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_sub&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">multiply</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_mul&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">multiply_transposed</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_mulTrans&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;randUnif&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;randUnif&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">random_shuffle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;randShuffle&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_sqrt&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">divide</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;sp_div&#39;</span><span class="p">)</span>
+    <span class="c1">#pset.addPrimitive(sp.covariance,</span>
+    <span class="c1">#    [GTMOEPDataPair],GTMOEPDataPair, name = &#39;sp.covar&#39;)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">my_pow</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;my_pow&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">rms</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spRMS&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">dct</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spDCT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">idct</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spIDCT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">dft_real</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spDFTR&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">idft</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spIDFT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">transpose</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spTrans&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">log</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spLog&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">my_max</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spMyMax&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">my_min</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spMyMin&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_max</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scalarMax&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scalar_min</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scalarMin&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">multiply_spectrum</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;mulSpec&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">equal</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spEqual&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">greater_than</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spGT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">greater_than_or_equal</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spGTE&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">less_than</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spLT&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">less_than_or_equal</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spLTE&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">image_not_equal</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spNE&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">in_range</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;InRange&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">std_deviation</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;spStdDev&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">threshold_nlargest</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;threshN&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">threshold_nlargest_binary</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;threshNB&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">scale_abs</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;scaleAbs&#39;</span><span class="p">)</span>
+
+    <span class="c1"># contours</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_all</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contoursAll&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_min_area</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMinArea&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_max_area</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaxArea&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_convex_concave</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contConvexConcave&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_min_length</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMinLen&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contours_max_length</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaxLen&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMask&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_area</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinA&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_area</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxA&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_convex</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskConvex&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_length</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinLen&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_length</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxLen&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_length</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeLen&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinEnclosingCircle&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxEnclosingCircle&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeEnclosingCircle&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_extent_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinExtentEncCir&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_extent_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxExtentEncCir&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_extent_enclosing_circle</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeExtentEncCir&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_aspect_ratio</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinAspect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_aspect_ratio</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxAspect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_aspect_ratio</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeAspect&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_extent</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinExtent&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_extent</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxExtent&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_extent</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeExtent&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_solidity</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinSolidity&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_solidity</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxSolidity&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_solidity</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRangeSolidity&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_min_equ_diameter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMinEquDiameter&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_max_equ_diameter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskMaxEquDiameter&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addPrimitive</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">contour_mask_range_equ_diameter</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span><span class="n">GTMOEPDataPair</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;contMaskRamgeEquDiameter&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="addTerminals"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.addTerminals">[docs]</a><span class="k">def</span> <span class="nf">addTerminals</span><span class="p">(</span><span class="n">pset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Takes in a pset and adds terminals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pset: primitive set</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Add terminals to index features</span>
+    <span class="c1"># featIndex = np.arange(self.cols)</span>
+    <span class="c1"># for i in featIndex:</span>
+    <span class="c1">#    pset.addTerminal(i,&#39;featNum&#39;)</span>
+
+    <span class="c1"># Add terminals to index observations</span>
+    <span class="c1"># obsIndex = np.arange(self.rows)</span>
+    <span class="c1"># for i in obsIndex:</span>
+    <span class="c1">#    pset.addTerminal(i,&#39;obsNum&#39;)</span>
+
+    <span class="c1"># Add training data as terminals</span>
+    <span class="c1"># pset.addTerminal(self.trainVec, &#39;trainVec&#39;)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="c1"># pset.addEphemeralConstant(&#39;myGenFloat&#39;, myUniform, float)</span>
+    <span class="c1"># pset.addEphemeralConstant(&#39;myRandInt&#39;, myRandInt, int)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addEphemeralConstant</span><span class="p">(</span><span class="s1">&#39;listGen&#39;</span><span class="p">,</span> <span class="n">my_gen_list</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addEphemeralConstant</span><span class="p">(</span><span class="s1">&#39;learnerGen&#39;</span><span class="p">,</span> <span class="n">learnerGen</span><span class="p">,</span> <span class="n">LearnerType</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addEphemeralConstant</span><span class="p">(</span><span class="s1">&#39;myRandTri&#39;</span><span class="p">,</span> <span class="n">my_rand_tri_state</span><span class="p">,</span> <span class="n">TriState</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;trueBool&#39;</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;falseBool&#39;</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">pset</span><span class="o">.</span><span class="n">addTerminal</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span></div>
+
+    <span class="c1"># N = 100</span>
+    <span class="c1"># for i in np.arange(L*N):</span>
+    <span class="c1"># pset.addTerminal(float(i)/float(N), float, name = &#39;myFloat&#39; +</span>
+    <span class="c1"># str(float(i)/float(N)).replace(&#39;.&#39;,&#39;Point&#39;))</span>
+
+<div class="viewcode-block" id="my_rand_tri_state"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.my_rand_tri_state">[docs]</a><span class="k">def</span> <span class="nf">my_rand_tri_state</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns a random number 0, 1, or 2</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        0, 1, or 2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">TriState</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="myRound"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.myRound">[docs]</a><span class="k">def</span> <span class="nf">myRound</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Rounds a number</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: number to round</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rounded integer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+
+
+<span class="c1"># Note: add ANN back to learners list when implemented properly</span>
+<div class="viewcode-block" id="learnerGen"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.learnerGen">[docs]</a><span class="k">def</span> <span class="nf">learnerGen</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Generates a machine learner object</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a learner object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># learners = [&#39;KNN&#39;, &#39;SVM&#39;, &#39;Bayes&#39;, &#39;Trees&#39;, &#39;RandForest&#39;, &#39;Boosting&#39;, &#39;LogR&#39;]</span>
+    <span class="n">learners</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;KNN&#39;</span><span class="p">,</span> <span class="s1">&#39;SVM&#39;</span><span class="p">,</span> <span class="s1">&#39;Bayes&#39;</span><span class="p">,</span> <span class="s1">&#39;DNN&#39;</span><span class="p">,</span> <span class="s1">&#39;Trees&#39;</span><span class="p">,</span> <span class="s1">&#39;RandForest&#39;</span><span class="p">,</span> <span class="s1">&#39;Boosting&#39;</span><span class="p">,</span> <span class="s1">&#39;LogR&#39;</span><span class="p">]</span>
+    <span class="n">selectedLearner</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">learners</span><span class="p">)</span>
+    <span class="n">learnerParams</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;KNN&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;weights&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;SVM&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;C&#39;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;kernel&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;DNN&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;epochs&#39;</span><span class="p">:</span><span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span><span class="mi">128</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;RandForest&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;n_estimators&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;class_weight&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;criterion&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;Trees&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;criterion&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;splitter&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;Boosting&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;n_estimators&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;max_depth&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;LSVM&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;normalize&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;Kmeans&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;n_clusters&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;GMM&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;n_components&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;covariance_type&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;SpectralCluster&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;n_clusters&#39;</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;eigen_solver&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;ArgMax&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;ArgMin&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;DepthEstimate&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;LogR&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;penalty&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span><span class="mf">1.0</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">selectedLearner</span> <span class="o">==</span> <span class="s1">&#39;ANN&#39;</span><span class="p">:</span>
+        <span class="n">learnerParams</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hidden_layer_sizes&#39;</span><span class="p">:(</span><span class="mi">100</span><span class="p">,),</span> <span class="s1">&#39;activation&#39;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;solver&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">LearnerType</span><span class="p">(</span><span class="n">selectedLearner</span><span class="p">,</span> <span class="n">learnerParams</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="modifyLearner"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.modifyLearner">[docs]</a><span class="k">def</span> <span class="nf">modifyLearner</span><span class="p">(</span><span class="n">learner</span><span class="p">,</span> <span class="n">newValue</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Modifies a machine learner object</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        learner: learner to modify</span>
+<span class="sd">        newValue: new value for learner parameter</span>
+<span class="sd">        pos: which parameter to insert new value</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a learner object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">learnerName</span> <span class="o">=</span> <span class="n">learner</span><span class="o">.</span><span class="n">learnerName</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;KNN&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;K&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;KNN&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;SVM&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;kernel&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;DNN&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;DNN&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;RandForest&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;n_estimators&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;RandForest&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;class_weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;RandForest&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;criterion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;Boosting&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;Boosting&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;n_estimators&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;Boosting&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">3</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;max_depth&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;Kmeans&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;n_clusters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;GMM&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;n_components&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;GMM&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span> <span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;covariance_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;SpectralCluster&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;n_clusters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;SpectralCluster&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pos</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;eigen_solver&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;ArgMax&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;ArgMin&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;DepthEstimate&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;sampling_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;LogR&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;penalty&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">learnerName</span> <span class="o">==</span> <span class="s1">&#39;LogR&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">newValue</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">learner</span><span class="o">.</span><span class="n">learnerParams</span><span class="p">[</span><span class="s1">&#39;C&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">newValue</span>
+
+    <span class="k">return</span> <span class="n">learner</span></div>
+
+
+<div class="viewcode-block" id="myUniform"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.myUniform">[docs]</a><span class="k">def</span> <span class="nf">myUniform</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Draws samples over a uniform distribution</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        N: low and high of half-open interval</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a sample</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="myRandInt"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.myRandInt">[docs]</a><span class="k">def</span> <span class="nf">myRandInt</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="mi">15</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Draws samples over a range</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        N: defines range as N &lt;= i &lt;= N, where i is the sampled integer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        a sample</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="o">-</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="my_pass_through"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.my_pass_through">[docs]</a><span class="k">def</span> <span class="nf">my_pass_through</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is a pass through method used by tree construction to reach a</span>
+<span class="sd">    certain height</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: x</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        x</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="my_gen_list"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.gp_framework_helper.my_gen_list">[docs]</a><span class="k">def</span> <span class="nf">my_gen_list</span><span class="p">(</span><span class="n">N</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates a random list of integers of length N</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        N: length of list</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        random list</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">myRandInt</span><span class="p">()</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,134 @@
+GPFramework package
+===================
+
+Submodules
+----------
+
+GPFramework\.data module
+------------------------
+
+.. automodule:: GPFramework.data
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.didLaunch module
+-----------------------------
+
+.. automodule:: GPFramework.didLaunch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.evalFunctions module
+---------------------------------
+
+.. automodule:: GPFramework.evalFunctions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.feature\_selection\_methods module
+-----------------------------------------------
+
+.. automodule:: GPFramework.feature_selection_methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.general\_functions module
+--------------------------------------
+
+.. automodule:: GPFramework.general_functions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.gp\_framework\_helper module
+-----------------------------------------
+
+.. automodule:: GPFramework.gp_framework_helper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.gtMOEP module
+--------------------------
+
+.. automodule:: GPFramework.gtMOEP
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.gtmoep\_operators module
+-------------------------------------
+
+.. automodule:: GPFramework.gtmoep_operators
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.launchGTMOEP module
+--------------------------------
+
+.. automodule:: GPFramework.launchGTMOEP
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.methods module
+---------------------------
+
+.. automodule:: GPFramework.methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.selection\_methods module
+--------------------------------------
+
+.. automodule:: GPFramework.selection_methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.signal\_methods module
+-----------------------------------
+
+.. automodule:: GPFramework.signal_methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.spatial\_methods module
+------------------------------------
+
+.. automodule:: GPFramework.spatial_methods
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.sql\_connection\_orm module
+----------------------------------------
+
+.. automodule:: GPFramework.sql_connection_orm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+GPFramework\.standalone\_tree\_evaluator module
+-----------------------------------------------
+
+.. automodule:: GPFramework.standalone_tree_evaluator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: GPFramework
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,0 +1,334 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.feature_selection_methods &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.feature_selection_methods</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Programmed by Jason Zutty</span>
+<span class="sd">Modified by VIP Team</span>
+<span class="sd">Implements a number of feature selection methods for use with deap</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sklearn.feature_selection</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">GPFramework.data</span> <span class="k">as</span> <span class="nn">data</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<span class="n">SCORING_FUNCTION_LIST</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">f_classif</span><span class="p">,</span>
+    <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">chi2</span><span class="p">,</span>
+    <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">f_regression</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="feature_selector_wrapper"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.feature_selector_wrapper">[docs]</a><span class="k">def</span> <span class="nf">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Template for perfroming feature selection</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        selector: selector to fit to data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Extract training data and target values from the data</span>
+    <span class="n">training_data</span> <span class="o">=</span> <span class="n">data_pair</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span><span class="o">.</span><span class="n">get_numpy</span><span class="p">()</span>
+    <span class="n">target_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">inst</span><span class="o">.</span><span class="n">get_target</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span>
+                              <span class="n">inst</span> <span class="ow">in</span> <span class="n">data_pair</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">()</span><span class="o">.</span><span class="n">get_instances</span><span class="p">()])</span>
+    <span class="c1"># Fit the selector to the data</span>
+    <span class="n">selector</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">training_data</span><span class="p">,</span> <span class="n">target_values</span><span class="p">)</span>
+    <span class="c1"># Extract a boolean mask for the data</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">get_support</span><span class="p">()</span>
+
+    <span class="c1"># Now Iterate through the data and remove the non masked columns</span>
+    <span class="c1"># Initialize an empty data list to append our data objects to</span>
+    <span class="n">data_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Perfrom the selection on both training and testing data</span>
+    <span class="k">for</span> <span class="n">data_set</span> <span class="ow">in</span> <span class="p">[</span><span class="n">data_pair</span><span class="o">.</span><span class="n">get_train_data</span><span class="p">(),</span> <span class="n">data_pair</span><span class="o">.</span><span class="n">get_test_data</span><span class="p">()]:</span>
+        <span class="c1"># Copy the instances so nothing is destructive</span>
+        <span class="n">instances</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data_set</span><span class="o">.</span><span class="n">get_instances</span><span class="p">())</span>
+
+        <span class="k">for</span> <span class="n">instance</span> <span class="ow">in</span> <span class="n">instances</span><span class="p">:</span>
+            <span class="c1"># Get the features for the instance</span>
+            <span class="n">feature_set</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">get_features</span><span class="p">()</span>
+            <span class="c1"># Select the correct range as determined by the boolean mask</span>
+            <span class="n">new_data</span> <span class="o">=</span> <span class="n">feature_set</span><span class="o">.</span><span class="n">get_data</span><span class="p">()[:,</span> <span class="n">mask</span><span class="p">]</span>
+            <span class="n">data_labels</span> <span class="o">=</span> <span class="n">feature_set</span><span class="o">.</span><span class="n">get_labels</span><span class="p">()[</span><span class="n">mask</span><span class="p">]</span>
+            <span class="c1"># Reset the features in the instance to the masked features</span>
+            <span class="n">feature_set</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">new_data</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">data_labels</span><span class="p">)</span>
+        <span class="c1"># Build a new data set from the new instances</span>
+        <span class="n">new_data_set</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">GTMOEPData</span><span class="p">(</span><span class="n">instances</span><span class="p">)</span>
+        <span class="c1"># Append to the list so we can build the pair</span>
+        <span class="n">data_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_data_set</span><span class="p">)</span>
+    <span class="c1"># Build the data pair from the list</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">GTMOEPDataPair</span><span class="p">(</span><span class="n">train_data</span><span class="o">=</span><span class="n">data_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">test_data</span><span class="o">=</span><span class="n">data_list</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">();</span> <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="select_k_best_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_k_best_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_k_best_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select k best method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectKBest.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        k: numper of top features to select</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_k_best_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># force k to be positive</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select k best</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">SelectKBest</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="select_percentile_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_percentile_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_percentile_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">percentile</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select percentile method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectPercentile.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        percentile: percent of features to keep</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Correct negative percentiles</span>
+    <span class="n">percentile</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">percentile</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_percentile_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select percentile</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">SelectPercentile</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="select_fpr_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_fpr_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_fpr_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select fpr method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectFpr.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        alpha: the highest p-value for features to be kept</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_fpr_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select fpr</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">SelectFpr</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="select_fdr_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_fdr_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_fdr_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select fdr method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectFdr.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        alpha: the highest uncorrected p-value for features to keep</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_fdr_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select fdr</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">SelectFdr</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+
+<div class="viewcode-block" id="select_generic_univariate_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_generic_univariate_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_generic_univariate_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">param</span><span class="o">=</span><span class="mf">1e-05</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select generic univariate method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.GenericUnivariateSelect.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        mode: feature selection mode</span>
+<span class="sd">        param: parameter of the corresponding mode</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_generic_univariate_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Get the mode</span>
+    <span class="n">MODE_LIST</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;percentile&#39;</span><span class="p">,</span> <span class="s1">&#39;k_best&#39;</span><span class="p">,</span> <span class="s1">&#39;fpr&#39;</span><span class="p">,</span> <span class="s1">&#39;fdr&#39;</span><span class="p">,</span> <span class="s1">&#39;fwe&#39;</span><span class="p">]</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">MODE_LIST</span><span class="p">[</span><span class="n">mode</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">MODE_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select generic univariate</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">GenericUnivariateSelect</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="select_fwe_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.select_fwe_scikit">[docs]</a><span class="k">def</span> <span class="nf">select_fwe_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">scoring_function</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a select fwe method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectFwe.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        scoring_function: function taking two arrays X and y, and returning a</span>
+<span class="sd">        pair of arrays (scores, pvalues) or a single array of scores</span>
+<span class="sd">        alpha: the highest uncorrected p-value for features to keep</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;select_fwe_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Get scoring function</span>
+    <span class="n">scoring_function</span> <span class="o">=</span> <span class="n">SCORING_FUNCTION_LIST</span><span class="p">[</span><span class="n">scoring_function</span><span class="o">%</span><span class="nb">len</span><span class="p">(</span><span class="n">SCORING_FUNCTION_LIST</span><span class="p">)]</span>
+    <span class="c1"># Create a selector for scikit&#39;s select fwe</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">SelectFwe</span><span class="p">(</span><span class="n">scoring_function</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+
+
+<div class="viewcode-block" id="variance_threshold_scikit"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.feature_selection_methods.variance_threshold_scikit">[docs]</a><span class="k">def</span> <span class="nf">variance_threshold_scikit</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the result of a variance threshold method using scikit</span>
+
+<span class="sd">    http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.VarianceThreshold.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data_pair: given data pair</span>
+<span class="sd">        threshold: features with a training-set variance lower than this</span>
+<span class="sd">        threshold will be removed. The default is to keep all features with</span>
+<span class="sd">        non-zero variance. --sklearn</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified data pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;variance_threshold_scikit&#39;</span><span class="p">);</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="c1"># Make sure the threshold is poistive</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span>
+    <span class="c1"># Create a selector for scikit&#39;s variance threshold</span>
+    <span class="n">selector</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">feature_selection</span><span class="o">.</span><span class="n">VarianceThreshold</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span>
+    <span class="c1"># Call the generic feature selection using this selector</span>
+    <span class="n">data_pair</span> <span class="o">=</span> <span class="n">feature_selector_wrapper</span><span class="p">(</span><span class="n">data_pair</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_pair</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

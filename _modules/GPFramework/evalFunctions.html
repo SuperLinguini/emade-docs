@@ -1,0 +1,894 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.evalFunctions &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.evalFunctions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Programmed by Jason Zutty</span>
+<span class="sd">Modified by VIP Team</span>
+<span class="sd">Implements a number of evaluation functions for scoring the population</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="k">import</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">f1_score</span><span class="p">,</span> <span class="n">average_precision_score</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<div class="viewcode-block" id="false_positive"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.false_positive">[docs]</a><span class="k">def</span> <span class="nf">false_positive</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    False positive is test_data == 1 when truth_data == 0</span>
+<span class="sd">    For example adult dataset a 0 represents &lt;= 50,000 while a 1 represents &gt;50,000</span>
+<span class="sd">    A false positive means predicting greater than 50k when the individual made less</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="n">truth_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="n">truth_data</span><span class="o">==</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="false_negative"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.false_negative">[docs]</a><span class="k">def</span> <span class="nf">false_negative</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    False negative is test_data == 0 when truth_data == 1</span>
+<span class="sd">    For example adult dataset a 0 represents &lt;= 50,000 while a 1 represents &gt;50,000</span>
+<span class="sd">    A false negative means predicting less than 50k when the individual made more</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="n">truth_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="n">truth_data</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="roc_auc"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.roc_auc">[docs]</a><span class="k">def</span> <span class="nf">roc_auc</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns area under receiver operating characteristic</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="n">truth_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">truth_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="precision_auc"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.precision_auc">[docs]</a><span class="k">def</span> <span class="nf">precision_auc</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns area under precision-recall curve</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="n">truth_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">average_precision_score</span><span class="p">(</span><span class="n">truth_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="f1_score_min"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.f1_score_min">[docs]</a><span class="k">def</span> <span class="nf">f1_score_min</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns F1-Score based on precision and recall</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="n">truth_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">f1_score</span><span class="p">(</span><span class="n">truth_data</span><span class="p">,</span> <span class="n">test_data</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="objective0EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective0EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective0EvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RMS Error</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">testData</span><span class="o">-</span><span class="n">truthData</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="objective1EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective1EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective1EvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Over Prediction</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="n">truthData</span> <span class="o">-</span> <span class="n">testData</span>
+    <span class="n">overPrediction</span> <span class="o">=</span> <span class="n">differences</span> <span class="o">&lt;</span> <span class="mi">0</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">differences</span><span class="p">)</span>
+    <span class="c1"># If there were no under predictions, return 0 error</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">overPrediction</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">differences</span><span class="p">[</span><span class="n">overPrediction</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="objective2EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective2EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective2EvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Under Prediction</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="n">truthData</span> <span class="o">-</span> <span class="n">testData</span>
+    <span class="n">underPrediction</span> <span class="o">=</span> <span class="n">differences</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">differences</span><span class="p">)</span>
+    <span class="c1"># If there were no over predictions, return 0 error</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">underPrediction</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">differences</span><span class="p">[</span><span class="n">underPrediction</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="objective3EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective3EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective3EvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scores by height of individual tree</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">individual</span><span class="o">.</span><span class="n">height</span></div>
+
+<div class="viewcode-block" id="objective4EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective4EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective4EvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Probability of &quot;Detection&quot;</span>
+<span class="sd">    Probability of prediciting within 1 decimeter</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="n">truthData</span> <span class="o">-</span> <span class="n">testData</span>
+    <span class="n">under_one_decimeter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">differences</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mf">1.0</span><span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">under_one_decimeter</span><span class="p">))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">under_one_decimeter</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="objective5EvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.objective5EvalFunction">[docs]</a><span class="k">def</span> <span class="nf">objective5EvalFunction</span><span class="p">(</span><span class="n">indivdual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Overall mean percent error</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">differences</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">truth_data</span> <span class="o">-</span> <span class="n">test_data</span><span class="p">)</span>
+    <span class="n">percents</span> <span class="o">=</span> <span class="n">differences</span><span class="o">/</span><span class="n">truth_data</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">percents</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="class0AccuracyEvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.class0AccuracyEvalFunction">[docs]</a><span class="k">def</span> <span class="nf">class0AccuracyEvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error in predicting class 0</span>
+<span class="sd">    For EEG data, classes are 0 and 4</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">truth_point</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_point</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">num_wrong</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># We don&#39;t want &#39;perfect&#39; equate it with 100% error</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="class4AccuracyEvalFunction"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.class4AccuracyEvalFunction">[docs]</a><span class="k">def</span> <span class="nf">class4AccuracyEvalFunction</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error in predicting class 4</span>
+<span class="sd">    For EEG data, classes are 0 and 4</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">testData</span><span class="p">,</span> <span class="n">truthData</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">truth_point</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_point</span> <span class="o">&lt;=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">num_wrong</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># We don&#39;t want &#39;perfect&#39; equate it with 100% error</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="drinking_error_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.drinking_error_rate">[docs]</a><span class="k">def</span> <span class="nf">drinking_error_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate &quot;1 - PD&quot;</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with drinking</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Two represents a drinking event, Three is eating, One is Chewing</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">truth_point</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&lt;=</span> <span class="mf">1.5</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mf">2.5</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="drinking_false_alarm_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.drinking_false_alarm_rate">[docs]</a><span class="k">def</span> <span class="nf">drinking_false_alarm_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate of false alarms</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with drinking</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Two represents a drinking event</span>
+        <span class="k">if</span> <span class="n">truth_point</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mf">1.5</span> <span class="ow">and</span> <span class="n">test_point</span> <span class="o">&lt;=</span> <span class="mf">2.5</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="breadth_eval_function"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.breadth_eval_function">[docs]</a><span class="k">def</span> <span class="nf">breadth_eval_function</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function determines a metric for breadth by tracking how many times</span>
+<span class="sd">    ARG0 appears in the individual.  This allows for competition with fitter solutions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute the string representation of the individual</span>
+    <span class="n">string_rep</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">individual</span><span class="p">)</span>
+    <span class="c1"># Generate array for appearances of ARG0</span>
+    <span class="n">data_appearances</span> <span class="o">=</span> <span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s1">&#39;ARG0&#39;</span><span class="p">,</span> <span class="n">string_rep</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">data_appearances</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="depth_breadth_eval_function"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.depth_breadth_eval_function">[docs]</a><span class="k">def</span> <span class="nf">depth_breadth_eval_function</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A shallower tree should always beat a deeper tree.</span>
+<span class="sd">    Given all else equal, a wider tree should beat a narrower tree.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute the string representation of the individual</span>
+    <span class="n">string_rep</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">individual</span><span class="p">)</span>
+    <span class="c1"># Generate array for appearances of ARG0</span>
+    <span class="n">data_appearances</span> <span class="o">=</span> <span class="p">[</span><span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="s1">&#39;ARG0&#39;</span><span class="p">,</span> <span class="n">string_rep</span><span class="p">)]</span>
+    <span class="c1"># Computed by counting occurrences of GTMOEPDataPair per primitive</span>
+    <span class="c1"># Let&#39;s make this dynamic in the future by querying all functions</span>
+    <span class="n">max_breadth</span> <span class="o">=</span> <span class="mf">3.0</span>
+    <span class="c1"># Tradeoff formula</span>
+    <span class="k">return</span> <span class="n">individual</span><span class="o">.</span><span class="n">height</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_appearances</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">max_breadth</span><span class="o">**</span><span class="n">individual</span><span class="o">.</span><span class="n">height</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="num_elements_eval_function"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.num_elements_eval_function">[docs]</a><span class="k">def</span> <span class="nf">num_elements_eval_function</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The fewer elements in the tree the better</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Let&#39;s take the sum of all elements in the tree where the name does not contain adf_</span>
+    <span class="n">num_elements</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">tree</span> <span class="ow">in</span> <span class="n">individual</span><span class="p">:</span>
+        <span class="n">num_elements</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="mi">1</span> <span class="k">if</span> <span class="s1">&#39;adf_&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">elem</span><span class="o">.</span><span class="n">name</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">elem</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">])</span>
+
+    <span class="c1"># Let&#39;s now put the test cases on the individual to be used for fuzzy selection</span>
+    <span class="c1"># First get what&#39;s there</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="c1"># Now stick on what&#39;s new</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">test_case_vec</span><span class="p">,</span> <span class="n">num_elements</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">))))</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">test_case_vec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">num_elements</span></div>
+
+<div class="viewcode-block" id="num_elements_eval_function_capped"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.num_elements_eval_function_capped">[docs]</a><span class="k">def</span> <span class="nf">num_elements_eval_function_capped</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The fewer elements in the tree the better</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">individual</span><span class="p">),</span> <span class="mi">1707</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="shaking_error_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.shaking_error_rate">[docs]</a><span class="k">def</span> <span class="nf">shaking_error_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate &quot;1 - PD&quot;</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with shaking</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Nine represents a shaking event</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">truth_point</span> <span class="o">==</span> <span class="mi">9</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&lt;=</span> <span class="mf">8.5</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mf">9.5</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="shaking_false_alarm_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.shaking_false_alarm_rate">[docs]</a><span class="k">def</span> <span class="nf">shaking_false_alarm_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate of false alarms</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with shaking</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Nine represents a shaking event</span>
+        <span class="k">if</span> <span class="n">truth_point</span> <span class="o">!=</span> <span class="mi">9</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_point</span> <span class="o">&gt;</span> <span class="mf">8.5</span> <span class="ow">and</span> <span class="n">test_point</span> <span class="o">&lt;=</span> <span class="mf">9.5</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="scratching_error_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.scratching_error_rate">[docs]</a><span class="k">def</span> <span class="nf">scratching_error_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate &quot;1 - PD&quot;</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with scratching</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Eight represents a scratching event</span>
+        <span class="c1">#if (truth_point == 8):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">truth_point</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">test_point</span><span class="p">)</span> <span class="ow">or</span> <span class="n">test_point</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="c1"># First get what&#39;s there</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="c1"># Now stick on what&#39;s new</span>
+    <span class="c1"># The second == 1 is ignoring things that are not 0 nor 1</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">test_case_vec</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="n">truth_data</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)))</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">test_case_vec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="scratching_false_alarm_rate"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.scratching_false_alarm_rate">[docs]</a><span class="k">def</span> <span class="nf">scratching_false_alarm_rate</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function assesses the error rate of false alarms</span>
+<span class="sd">    For dog behavioral data in predicting the class number</span>
+<span class="sd">    associated with scratching</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">num_wrong</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_point</span><span class="p">,</span> <span class="n">truth_point</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="c1"># Eight represents a scratching event</span>
+        <span class="c1">#if truth_point != 8:</span>
+        <span class="k">if</span> <span class="n">truth_point</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1">#if test_point &gt; 7.5 and test_point &lt;= 8.5:</span>
+            <span class="k">if</span> <span class="n">test_point</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">num_wrong</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="c1">#if num_wrong == 0:</span>
+    <span class="c1">#    # Perfection implies overtraining</span>
+    <span class="c1">#    return 1.0</span>
+    <span class="c1">#else:</span>
+    <span class="c1"># First get what&#39;s there</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="c1"># Now stick on what&#39;s new</span>
+    <span class="c1"># The == 1 is ignoring things that are not 0 nor 1</span>
+    <span class="n">test_case_vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">test_case_vec</span><span class="p">,</span> <span class="n">test_data</span><span class="p">[</span><span class="n">truth_data</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">test_case_vec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_wrong</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_over_predicted_inds"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.get_over_predicted_inds">[docs]</a><span class="k">def</span> <span class="nf">get_over_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns over predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">test_data</span> <span class="o">&gt;</span> <span class="n">truth_data</span> <span class="o">+</span> <span class="n">tolerance</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="get_under_predicted_inds"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.get_under_predicted_inds">[docs]</a><span class="k">def</span> <span class="nf">get_under_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns under predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">test_data</span> <span class="o">&lt;</span> <span class="n">truth_data</span> <span class="o">-</span> <span class="n">tolerance</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="count_over_predictions"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.count_over_predictions">[docs]</a><span class="k">def</span> <span class="nf">count_over_predictions</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Counts over predictions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_over_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="count_under_predictions"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.count_under_predictions">[docs]</a><span class="k">def</span> <span class="nf">count_under_predictions</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Counts under predictions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_under_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="overall_standard_deviation"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.overall_standard_deviation">[docs]</a><span class="k">def</span> <span class="nf">overall_standard_deviation</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates overall standard deviation</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">test_data</span> <span class="o">-</span> <span class="n">truth_data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="standard_deviation_over"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.standard_deviation_over">[docs]</a><span class="k">def</span> <span class="nf">standard_deviation_over</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates standard deviation of over predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">over_predicted_inds</span> <span class="o">=</span> <span class="n">get_over_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                  <span class="n">truth_data</span><span class="p">,</span>
+                                                  <span class="n">tolerance</span><span class="p">)</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">overall_standard_deviation</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_subset</span><span class="p">,</span> <span class="n">truth_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="standard_deviation_under"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.standard_deviation_under">[docs]</a><span class="k">def</span> <span class="nf">standard_deviation_under</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates standard deviation of under predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">under_predicted_inds</span> <span class="o">=</span> <span class="n">get_under_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                    <span class="n">truth_data</span><span class="p">,</span>
+                                                    <span class="n">tolerance</span><span class="p">)</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">overall_standard_deviation</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_subset</span><span class="p">,</span> <span class="n">truth_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="average_percent_error"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.average_percent_error">[docs]</a><span class="k">def</span> <span class="nf">average_percent_error</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates average percent error</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">test_data</span> <span class="o">-</span> <span class="n">truth_data</span><span class="p">)</span> <span class="o">/</span> <span class="n">truth_data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="average_precent_error_over"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.average_precent_error_over">[docs]</a><span class="k">def</span> <span class="nf">average_precent_error_over</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates average percent error for over predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">over_predicted_inds</span> <span class="o">=</span> <span class="n">get_over_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                  <span class="n">truth_data</span><span class="p">,</span>
+                                                  <span class="n">tolerance</span><span class="p">)</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">average_percent_error</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_subset</span><span class="p">,</span> <span class="n">truth_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="average_precent_error_under"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.average_precent_error_under">[docs]</a><span class="k">def</span> <span class="nf">average_precent_error_under</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates average percent error for under predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">under_predicted_inds</span> <span class="o">=</span> <span class="n">get_under_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                    <span class="n">truth_data</span><span class="p">,</span>
+                                                    <span class="n">tolerance</span><span class="p">)</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">average_percent_error</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_subset</span><span class="p">,</span> <span class="n">truth_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="max_over_prediction_error"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.max_over_prediction_error">[docs]</a><span class="k">def</span> <span class="nf">max_over_prediction_error</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates max for over predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">over_predicted_inds</span> <span class="o">=</span> <span class="n">get_over_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                  <span class="n">truth_data</span><span class="p">,</span>
+                                                  <span class="n">tolerance</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">over_predicted_inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">over_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">test_subset</span> <span class="o">-</span> <span class="n">truth_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="max_under_prediction_error"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.max_under_prediction_error">[docs]</a><span class="k">def</span> <span class="nf">max_under_prediction_error</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates max for under predicted individuals</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+<span class="sd">        tolerance: tolerance threshold</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">under_predicted_inds</span> <span class="o">=</span> <span class="n">get_under_predicted_inds</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span>
+                                                    <span class="n">truth_data</span><span class="p">,</span>
+                                                    <span class="n">tolerance</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">under_predicted_inds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">test_subset</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="n">truth_subset</span> <span class="o">=</span> <span class="n">truth_data</span><span class="p">[</span><span class="n">under_predicted_inds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">truth_subset</span> <span class="o">-</span> <span class="n">test_subset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="continuous_mse"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.continuous_mse">[docs]</a><span class="k">def</span> <span class="nf">continuous_mse</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates continuous mean squared error</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">test_item</span><span class="p">,</span> <span class="n">truth_item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="n">error</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">truth_item</span> <span class="o">-</span> <span class="n">test_item</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">error</span></div>
+
+<div class="viewcode-block" id="continuous_bias"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.continuous_bias">[docs]</a><span class="k">def</span> <span class="nf">continuous_bias</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates continuous bias</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_item</span><span class="p">,</span> <span class="n">truth_item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="n">error</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">test_data</span> <span class="o">-</span> <span class="n">truth_data</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">error</span></div>
+
+<div class="viewcode-block" id="continuous_var"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.evalFunctions.continuous_var">[docs]</a><span class="k">def</span> <span class="nf">continuous_var</span><span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Evaluates continuous variance</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        individual: individual to score</span>
+<span class="sd">        test_data: test data</span>
+<span class="sd">        truth_data: labeled data</span>
+<span class="sd">        name: optional name parameter</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        objective score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">error</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">test_item</span><span class="p">,</span> <span class="n">truth_item</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">truth_data</span><span class="p">):</span>
+        <span class="n">error</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">test_data</span> <span class="o">-</span> <span class="n">truth_data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">error</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

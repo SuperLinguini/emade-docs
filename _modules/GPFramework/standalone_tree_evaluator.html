@@ -1,0 +1,162 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>GPFramework.standalone_tree_evaluator &#8212; EMADE 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for GPFramework.standalone_tree_evaluator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">GPFramework</span> <span class="k">import</span> <span class="n">gtMOEP</span> <span class="k">as</span> <span class="n">gtMOEP</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">STARTUP_FILE</span> <span class="o">=</span> <span class="s1">&#39;myPickleFile12142.dat&#39;</span>
+<span class="n">PARETO_FILE</span> <span class="o">=</span> <span class="s1">&#39;paretoFrontAdult15834.txt&#39;</span>
+
+<div class="viewcode-block" id="load_environment"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.standalone_tree_evaluator.load_environment">[docs]</a><span class="k">def</span> <span class="nf">load_environment</span><span class="p">(</span><span class="n">startup_settings_filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This method takes in a pickle file used to instantiate a GTMOEP environent.</span>
+<span class="sd">    It will replicate the start up process so that evaluations can all be performed correctly</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Open the startup settings file for reading</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">startup_settings_filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">startup_settings_file</span><span class="p">:</span>
+        <span class="c1"># Load evolution parameters, objectives, and datasets in order from the file</span>
+        <span class="n">evolutionParametersDict</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">startup_settings_file</span><span class="p">)</span>
+        <span class="n">objectivesDict</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">startup_settings_file</span><span class="p">)</span>
+        <span class="n">datasetDict</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">startup_settings_file</span><span class="p">)</span>
+
+        <span class="c1"># Use the items from the settings file to prepare the enviornment</span>
+        <span class="n">gtMOEP</span><span class="o">.</span><span class="n">create_representation</span><span class="p">(</span><span class="n">adfs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">gtMOEP</span><span class="o">.</span><span class="n">setObjectives</span><span class="p">(</span><span class="n">objectivesDict</span><span class="p">)</span>
+        <span class="n">gtMOEP</span><span class="o">.</span><span class="n">setDatasets</span><span class="p">(</span><span class="n">datasetDict</span><span class="p">)</span>
+        <span class="n">gtMOEP</span><span class="o">.</span><span class="n">setMemoryLimit</span><span class="p">(</span><span class="n">evolutionParametersDict</span><span class="p">[</span><span class="s1">&#39;memoryLimit&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Look in to this portion</span>
+        <span class="n">machineLearnerPath</span> <span class="o">=</span> <span class="s1">&#39;/media/dataDrive/ramdisk/&#39;</span>
+        <span class="n">gtMOEP</span><span class="o">.</span><span class="n">buildClassifier</span><span class="p">(</span><span class="n">machineLearnerPath</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="load_trees"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.standalone_tree_evaluator.load_trees">[docs]</a><span class="k">def</span> <span class="nf">load_trees</span><span class="p">(</span><span class="n">individuals_filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return some trees to evaluate</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># For now let&#39;s work with a saved pareto front</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">individuals_filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">input_file</span><span class="p">:</span>
+        <span class="n">pareto_front</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">input_file</span><span class="p">)</span>
+
+    <span class="n">individuals</span> <span class="o">=</span> <span class="p">[</span><span class="n">individual</span> <span class="k">for</span> <span class="n">individual</span> <span class="ow">in</span> <span class="n">pareto_front</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">individuals</span></div>
+
+
+
+<div class="viewcode-block" id="evaluation_wrapper"><a class="viewcode-back" href="../../GPFramework.html#GPFramework.standalone_tree_evaluator.evaluation_wrapper">[docs]</a><span class="k">def</span> <span class="nf">evaluation_wrapper</span><span class="p">(</span><span class="n">individual</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrap the evaluation process to return the fitness</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Capture outputs back from the evaluation function</span>
+    <span class="c1"># The second input in the tuple represents the dataset id,</span>
+    <span class="c1"># In this case we are forcing the first (0th)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Evaluating Individual&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">individual</span><span class="p">))</span>
+    <span class="c1"># sys.stdout.flush()</span>
+    <span class="n">individual</span><span class="p">,</span> <span class="n">run_time</span><span class="p">,</span> <span class="n">error_string</span> <span class="o">=</span> <span class="n">gtMOEP</span><span class="o">.</span><span class="n">evaluate_scoop</span><span class="p">(</span> <span class="p">(</span><span class="n">individual</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c1"># print(&#39;hello&#39;)</span>
+    <span class="k">return</span> <span class="n">individual</span><span class="o">.</span><span class="n">fitness</span><span class="o">.</span><span class="n">values</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run this script colacted with the datasets directory or a symlink to it</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Start off by loading up the environment</span>
+    <span class="n">load_environment</span><span class="p">(</span><span class="n">STARTUP_FILE</span><span class="p">)</span>
+
+    <span class="c1"># get trees</span>
+    <span class="n">individuals</span> <span class="o">=</span> <span class="n">load_trees</span><span class="p">(</span><span class="n">PARETO_FILE</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">individuals</span><span class="p">))</span>
+
+    <span class="c1"># Iterate through and evaluate each individual</span>
+    <span class="k">for</span> <span class="n">individual</span> <span class="ow">in</span> <span class="n">individuals</span><span class="p">:</span>
+        <span class="c1">#print str(individual), evaluation_wrapper(individual)</span>
+        <span class="n">objectives</span> <span class="o">=</span> <span class="n">evaluation_wrapper</span><span class="p">(</span><span class="n">individual</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">objectives</span><span class="p">)</span>
+        <span class="c1"># sys.stdout.flush()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Jason Zutty, Austin Dunn, Milind Lingineni, Bhargava Samanthula.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
